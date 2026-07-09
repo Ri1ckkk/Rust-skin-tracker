@@ -1,0 +1,7 @@
+{
+  "steam_id": "",
+  "currency": 3,
+  "language": "it",
+  "output_file": "rust_skin_tracker.xlsx",
+  "request_delay": 1.2
+}
