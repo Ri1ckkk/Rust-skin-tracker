@@ -1,5 +1,14 @@
 # Rust Skin Tracker
 
+<p align="center">
+  <img src="assets/banner.png" alt="Rust Skin Tracker" width="720">
+</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
+  <a href="https://buymeacoffee.com/ri1ckkk"><img src="https://img.shields.io/badge/support-buy%20me%20a%20coffee-C44213" alt="Buy Me A Coffee"></a>
+</p>
+
 Turn your Steam inventory into an Excel portfolio: current market value, your purchase price, and profit/loss per skin.
 
 Most Rust inventory calculators tell you what your skins are worth *today*. This one tracks what you **paid** and what you've **made** — and it keeps your buy prices when you re-run it.
@@ -8,6 +17,13 @@ Most Rust inventory calculators tell you what your skins are worth *today*. This
 
 ---
 
+##Screenshot
+
+<p align="center">
+  <img src="assets/screenshot.png" alt="The generated spreadsheet" width="880">
+</p>
+
+---
 ## What you get
 
 An `.xlsx` file with two sheets:
