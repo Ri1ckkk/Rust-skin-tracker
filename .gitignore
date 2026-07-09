@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Rust Skin Tracker — personal files
+config.json
+*.xlsx
+~$*.xlsx
