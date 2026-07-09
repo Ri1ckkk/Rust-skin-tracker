@@ -52,7 +52,7 @@ CURRENCIES = {
 DEFAULT_CONFIG = {
     "steam_id": "",
     "currency": 3,
-    "language": "it",
+    "language": "en",
     "output_file": "rust_skin_tracker.xlsx",
     "request_delay": 1.2,
 }
@@ -343,13 +343,22 @@ def parse_inventory(data, lang):
 
 # --------------------------------------------------------------------- xlsx
 
-def load_existing_buy_prices(path, sheet_name):
+def load_existing_buy_prices(path, preferred_sheet):
+    """Read buy prices from a previous run.
+
+    Sheet names are localised, so a user who switches language would otherwise
+    lose their prices. Try the current language first, then every other one.
+    """
     if not os.path.exists(path):
         return {}
     try:
         wb = load_workbook(path)
-        ws = wb[sheet_name]
-    except (KeyError, OSError, ValueError):
+    except (OSError, ValueError):
+        return {}
+
+    candidates = [preferred_sheet] + [s["inventory_sheet"] for s in STRINGS.values()]
+    ws = next((wb[n] for n in candidates if n in wb.sheetnames), None)
+    if ws is None:
         return {}
 
     prices = {}
@@ -360,6 +369,18 @@ def load_existing_buy_prices(path, sheet_name):
         if name and isinstance(buy_price, (int, float)) and buy_price > 0:
             prices[str(name)] = float(buy_price)
     return prices
+
+
+def ensure_writable(path):
+    """Fail fast if the spreadsheet is locked (usually: open in Excel)."""
+    if not os.path.exists(path):
+        return
+    try:
+        with open(path, "r+b"):
+            pass
+    except PermissionError:
+        raise RuntimeError(
+            f"'{path}' is locked. Close it in Excel (or LibreOffice) and run again.")
 
 
 def hstyle(cell, bg=RUST_ORANGE, fg=WHITE):
@@ -424,15 +445,19 @@ def build_excel(skins, buy_prices, cfg):
         dstyle(ws.cell(r, 5, bp or None), fg="4FC3F7", bg=bg, fmt=money)
         dstyle(ws.cell(r, 6, cp), fg="FFD54F", bg=bg, fmt=money)
 
-        if cp is not None:
-            colour = GREEN if (cp - bp) >= 0 else RED_COL
-            dstyle(ws.cell(r, 7, f"=(F{r}-E{r})*C{r}"), fg=colour, bg=bg,
-                   bold=True, fmt=money)
-            dstyle(ws.cell(r, 8, f'=IF(E{r}=0,"-",(F{r}-E{r})/E{r})'),
-                   fg=colour, bg=bg, bold=True, fmt=pct)
-        else:
+        if cp is None:
             dstyle(ws.cell(r, 7, s["na"]), fg="666666", bg=bg)
             dstyle(ws.cell(r, 8, s["na"]), fg="666666", bg=bg)
+        elif not bp:
+            # No buy price yet: showing (value - 0) would fake a profit.
+            dstyle(ws.cell(r, 7, "-"), fg="666666", bg=bg)
+            dstyle(ws.cell(r, 8, "-"), fg="666666", bg=bg)
+        else:
+            colour = GREEN if (cp - bp) >= 0 else RED_COL
+            dstyle(ws.cell(r, 7, f'=IF(E{r}="","-",(F{r}-E{r})*C{r})'),
+                   fg=colour, bg=bg, bold=True, fmt=money)
+            dstyle(ws.cell(r, 8, f'=IF(E{r}="","-",(F{r}-E{r})/E{r})'),
+                   fg=colour, bg=bg, bold=True, fmt=pct)
 
         dstyle(ws.cell(r, 9, f"{datetime.now():%d/%m/%Y %H:%M}"), fg="888888", bg=bg)
         ws.row_dimensions[r].height = 22
@@ -446,11 +471,15 @@ def build_excel(skins, buy_prices, cfg):
     tc.alignment = Alignment(horizontal="right", vertical="center")
     tc.border = BORDER
 
+    # Only rows with BOTH a buy price and a market price count toward P/L.
+    both = f'(E4:E{last_row}<>"")*(F4:F{last_row}<>"")'
+    pl = f'=SUMPRODUCT({both}*C4:C{last_row}*(F4:F{last_row}-E4:E{last_row}))'
+    base = f'SUMPRODUCT({both}*C4:C{last_row}*E4:E{last_row})'
     totals = [
         (5, f"=SUMPRODUCT(C4:C{last_row},E4:E{last_row})", money),
         (6, f"=SUMPRODUCT(C4:C{last_row},F4:F{last_row})", money),
-        (7, f"=F{tot}-E{tot}", money),
-        (8, f'=IF(E{tot}=0,"-",(F{tot}-E{tot})/E{tot})', pct),
+        (7, pl, money),
+        (8, f'=IF({base}=0,"-",G{tot}/{base})', pct),
     ]
     for col, formula, fmt in totals:
         c = ws.cell(tot, col, formula)
@@ -482,10 +511,10 @@ def build_excel(skins, buy_prices, cfg):
         f"=SUM('{inv}'!C4:C{last_row})",
         f"=SUMIF('{inv}'!D4:D{last_row},\"{s['yes']}\",'{inv}'!C4:C{last_row})",
         f"=COUNT('{inv}'!F4:F{last_row})",
-        f"=SUMPRODUCT('{inv}'!C4:C{last_row},'{inv}'!E4:E{last_row})",
-        f"=SUMPRODUCT('{inv}'!C4:C{last_row},'{inv}'!F4:F{last_row})",
-        "=B7-B6",
-        "=IF(B6=0,0,(B7-B6)/B6)",
+        f"='{inv}'!E{tot}",
+        f"='{inv}'!F{tot}",
+        f"='{inv}'!G{tot}",
+        f"='{inv}'!H{tot}",
         f"=COUNTIF('{inv}'!G4:G{last_row},\">0\")",
         f"=COUNTIF('{inv}'!G4:G{last_row},\"<0\")",
     ]
@@ -524,6 +553,8 @@ def run():
     lang = cfg["language"]
     symbol, _ = CURRENCIES[cfg["currency"]]
     delay = float(cfg["request_delay"])
+
+    ensure_writable(cfg["output_file"])
 
     print("[1/4] Loading Steam inventory...")
     data = fetch_inventory(cfg["steam_id"], delay)
@@ -567,6 +598,8 @@ def main():
         run()
     except KeyboardInterrupt:
         print("\nCancelled.")
+    except PermissionError as e:
+        print(f"\nERROR: cannot write the file — is it open in Excel? ({e.filename})")
     except RuntimeError as e:
         print(f"\nERROR: {e}")
     except Exception as e:  # noqa: BLE001
