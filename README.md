@@ -28,7 +28,7 @@ Enter your buy prices once in column E. Every re-run refreshes market prices and
 ## Install
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/rust-skin-tracker.git
+git clone https://github.com/Ri1ckkk/Rust-skin-tracker.git
 cd rust-skin-tracker
 pip install -r requirements.txt
 ```
@@ -77,7 +77,7 @@ Prices come from Steam's `priceoverview` endpoint (lowest listing, falling back 
 
 ## Support
 
-If this saved you time, you can [buy me a coffee](#) — completely optional, and the tool will always be free.
+If this saved you time, you can buymeacoffee.com/Ri1ckkk — completely optional, and the tool will always be free.
 
 Bug reports and pull requests welcome.
 
