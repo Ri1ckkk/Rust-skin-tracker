@@ -1,0 +1,55 @@
+name: Build Windows executable
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build executable
+        run: >
+          pyinstaller --onefile --console
+          --name RustSkinTracker
+          --icon assets/icon.ico
+          rust_tracker.py
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RustSkinTracker-windows
+          path: dist/RustSkinTracker.exe
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/RustSkinTracker.exe
+          body: |
+            Download `RustSkinTracker.exe` below and double-click it.
+
+            On first run it asks for your SteamID64 and saves it next to the
+            executable in `config.json`. The spreadsheet is created in the
+            same folder.
+
+            Windows SmartScreen will warn you that the publisher is unknown —
+            the binary is unsigned. Click "More info" then "Run anyway", or
+            build it yourself from source.
