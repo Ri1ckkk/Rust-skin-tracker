@@ -17,7 +17,7 @@ Most Rust inventory calculators tell you what your skins are worth *today*. This
 
 ---
 
-##Screenshot
+## Screenshot
 
 <p align="center">
   <img src="assets/screenshot.png" alt="The generated spreadsheet" width="880">
@@ -93,9 +93,11 @@ Prices come from Steam's `priceoverview` endpoint (lowest listing, falling back 
 
 ## Support
 
-If this saved you time, you can buymeacoffee.com/Ri1ckkk — completely optional, and the tool will always be free.
+If this saved your time, you can buymeacoffee.com/Ri1ckkk — completely optional, and the tool will always be free. 😉☕
 
 Bug reports and pull requests welcome.
+
+You can also text me on discord: r1ckkk
 
 ## License
 
